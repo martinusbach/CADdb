@@ -5,12 +5,15 @@
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/utility/setup/file.hpp>
+#include <boost/log/utility/setup/console.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/support/date_time.hpp>
 
 namespace blog = boost::log;
 namespace expr = boost::log::expressions;
 namespace keywords = boost::log::keywords;
+
+#define LOG(lvl) BOOST_LOG_TRIVIAL(lvl)
 
 int main(int argc, char* argv[])
 {
@@ -25,20 +28,32 @@ int main(int argc, char* argv[])
                 << expr::format_date_time< boost::posix_time::ptime >("TimeStamp", "%H:%M:%S.%f")
                 << " [" << std::setw(7) << blog::trivial::severity << "] "
                 << expr::smessage
-        )
+        ),
+        keywords::filter = ( blog::trivial::severity >= blog::trivial::trace )
+    );
+
+    blog::add_console_log
+    (
+        std::cout,
+        keywords::format =
+        (
+            expr::stream
+                << expr::format_date_time< boost::posix_time::ptime >("TimeStamp", "%H:%M:%S.%f")
+                << " [" << std::setw(7) << blog::trivial::severity << "] "
+                << expr::smessage
+        ),
+        keywords::filter = ( blog::trivial::severity >= blog::trivial::info )
     );
 
     blog::add_common_attributes();
 
-    blog::core::get()->set_filter(blog::trivial::severity >= blog::trivial::trace);
 
-
-    BOOST_LOG_TRIVIAL(trace)   << "A trace severity message";
-    BOOST_LOG_TRIVIAL(debug)   << "A debug severity message";
-    BOOST_LOG_TRIVIAL(info)    << "An informational severity message";
-    BOOST_LOG_TRIVIAL(warning) << "A warning severity message: " << 1 << ", " << 1.0/3.0;
-    BOOST_LOG_TRIVIAL(error)   << "An error severity message";
-    BOOST_LOG_TRIVIAL(fatal)   << "A fatal severity message";
+    LOG(trace)   << "A trace severity message";
+    LOG(debug)   << "A debug severity message";
+    LOG(info)    << "An informational severity message";
+    LOG(warning) << "A warning severity message: " << 1 << ", " << 1.0/3.0;
+    LOG(error)   << "An error severity message";
+    LOG(fatal)   << "A fatal severity message";
 
     return 0;
 }
