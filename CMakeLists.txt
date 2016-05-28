@@ -8,6 +8,7 @@ link_directories("C:/temp/boost_1_60_0/boost_1_60_0/stage/lib")
 
 set(SRC_LIST
     main.cpp
+    my_logger.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SRC_LIST})
