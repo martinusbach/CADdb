@@ -6,6 +6,7 @@
 #define LOG(lvl) BOOST_LOG_TRIVIAL(lvl)
 
 void log_init();
+void log_example();
 
 #endif // MY_LOGGER_H
 
