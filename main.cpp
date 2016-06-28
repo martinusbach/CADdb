@@ -4,6 +4,12 @@
 #include "my_logger.h"
 #include <sqlite3.h>
 
+#include <boost/filesystem.hpp>
+namespace bfs = boost::filesystem;
+
+// This macro can be used to write multi-line string literals without having to add quotes.
+#define QUOTE(...) #__VA_ARGS__
+
 
 class CadDBException : public std::exception
 {
@@ -21,19 +27,26 @@ public:
 class CadDB
 {
 public:
-    CadDB(const char* db_filename);
+    CadDB(const char *dbFilename);
+    CadDB(const char* dbFilename, const bool removeOldFile);
     ~CadDB();
     void CreateTestTable();
     void CreateCadTables();
 private:
+    void createDatabase(const char *dbFilename, const bool removeOldFile);
     sqlite3* m_db;
     std::string m_db_filename;
 };
 
-CadDB::CadDB(const char *db_filename)
-    : m_db(NULL), m_db_filename(db_filename)
+void CadDB::createDatabase(const char *dbFilename, const bool removeOldFile)
 {
-    int retval = sqlite3_open_v2(db_filename, &m_db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
+    if (removeOldFile && bfs::exists(dbFilename))
+    {
+        LOG(info) << "Removed existing db file: \"" << dbFilename << "\".";
+        bfs::remove(dbFilename);
+    }
+
+    int retval = sqlite3_open_v2(dbFilename, &m_db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
     if (retval != SQLITE_OK)
     {
         std::stringstream msg;
@@ -44,8 +57,20 @@ CadDB::CadDB(const char *db_filename)
     }
     else
     {
-        LOG(info) << "Opened sqlite db \"" << db_filename << "\".";
+        LOG(info) << "Opened sqlite db \"" << dbFilename << "\".";
     }
+}
+
+CadDB::CadDB(const char *dbFilename, const bool removeOldFile)
+    : m_db(NULL), m_db_filename(dbFilename)
+{
+    createDatabase(dbFilename, removeOldFile);
+}
+
+CadDB::CadDB(const char *dbFilename)
+    : m_db(NULL), m_db_filename(dbFilename)
+{
+    createDatabase(dbFilename, true); // remove old db by default
 }
 
 CadDB::~CadDB()
@@ -78,14 +103,15 @@ void CadDB::CreateCadTables()
     char* errmsg = 0;
     int retval = 0;
 
-    const char* createThermalModelsTable =
-        "CREATE TABLE ThermalModels"
-        "("
-        "  ThermalModelID NONE NOT NULL,"
-        "  Name NONE,"
-        "  CONSTRAINT Key1 PRIMARY KEY (ThermalModelID)"
-        ");";
-    retval = sqlite3_exec(m_db, createThermalModelsTable, NULL, NULL, &errmsg);
+    const char* createTableQuery = QUOTE(
+        CREATE TABLE ThermalModels
+        (
+          ThermalModelID NONE NOT NULL,
+          Name NONE,
+          CONSTRAINT Key1 PRIMARY KEY (ThermalModelID)
+        );
+    );
+    retval = sqlite3_exec(m_db, createTableQuery, NULL, NULL, &errmsg);
     if (retval != SQLITE_OK)
     {
         std::stringstream msg;
