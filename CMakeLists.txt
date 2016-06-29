@@ -15,6 +15,7 @@ set(SQLITE3_C "ext_libs/sqlite3/sqlite3.c")
 set(SRC_LIST
     main.cpp
     my_logger.cpp
+    caddb.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SRC_LIST} ${SQLITE3_C})
