@@ -18,5 +18,7 @@ set(SRC_LIST
     caddb.cpp
 )
 
+add_definitions(-D_CRT_SECURE_NO_WARNINGS) # to supress MSVS warnings about safe functions
+
 add_executable(${PROJECT_NAME} ${SRC_LIST} ${SQLITE3_C})
 
