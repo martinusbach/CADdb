@@ -33,6 +33,10 @@ void ObjReader::saveToDB(CadDB &db)
         return; // TODO throw exception
     }
 
+    const char coordChar[] = "XYZW";
+
+    VertexInserter vi(db);
+
     const size_t max_chars = 256;
     char line[max_chars];
     char* token;
@@ -51,15 +55,16 @@ void ObjReader::saveToDB(CadDB &db)
         if (*token == 'v')
         {
             // start reading a vertex
-            double vertex[4];
+            double coord;
             int i = 0;
             for (token = strtok(NULL, " ");
-                 token != NULL && i < 4;
+                 token != NULL && i < vi.m_nrInsertVals;
                  token = strtok(NULL, " "), ++i)
             {
-                vertex[i] = strtod(token, NULL);
+                coord = strtod(token, NULL);
+                LOG(debug) << "Read " << coordChar[i] << " coordinate: " << coord;
+                vi.bind(coord);
             }
-            LOG(debug) << "vertex: " << vertex[0] << "|" << vertex[1] << "|"  << vertex[2] << "|"  << vertex[3] << "|";
         }
         else if (*token == 'g')
         {
@@ -79,6 +84,8 @@ void ObjReader::saveToDB(CadDB &db)
             LOG(debug) << "face indices: " << face_indices[0] << "|" << face_indices[1] << "|" << face_indices[2] << "|";
         }
     }
+
+
 }
 
 
@@ -90,17 +97,30 @@ int main(int, char*[])
 
     try
     {
-        CadDB db("test.db");  // creates and opens an sqlite db
+        CadDB db("c:/temp/test.db");  // creates and opens an sqlite db
         db.CreateCadTables(); // creates the basic tables
 
-        ObjReader teapotReader("../sample_obj_files/teapot.obj");
-        teapotReader.saveToDB(db);
+//        ObjReader teapotReader("../sample_obj_files/teapot.obj");
+//        teapotReader.saveToDB(db);
+
+        ObjReader humanoidReader("../sample_obj_files/humanoid_tri.obj");
+        humanoidReader.saveToDB(db);
 
     }
     catch (CadDBException& exception)
     {
         LOG(fatal) << exception.msg << std::endl;
         return exception.code;
+    }
+    catch (const boost::filesystem::filesystem_error& e)
+    {
+        LOG(fatal) << e.what();
+        return -1;
+    }
+    catch (...)
+    {
+        LOG(fatal) << "Unhandled exception!";
+        return -1;
     }
 
     return 0;

@@ -1,12 +1,8 @@
 #include "caddb.h"
 #include "my_logger.h"
 #include <sstream>
-#include <boost/filesystem.hpp>
 
 namespace bfs = boost::filesystem;
-
-// This macro can be used to write multi-line string literals without having to add quotes.
-#define QUOTE(...) #__VA_ARGS__
 
 
 CadDB::CadDB(const char *dbFilename)
@@ -34,8 +30,15 @@ void CadDB::createDatabase(const char *dbFilename, const bool removeOldFile)
 {
     if (removeOldFile && bfs::exists(dbFilename))
     {
+//        try
+//        {
+            bfs::remove(dbFilename);
+//        }
+//        catch(const bfs::filesystem_error& e)
+//        {
+//            LOG()
+//        }
         LOG(info) << "Removed existing db file: \"" << dbFilename << "\".";
-        bfs::remove(dbFilename);
     }
 
     int retval = sqlite3_open_v2(dbFilename, &m_db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
@@ -53,28 +56,27 @@ void CadDB::createDatabase(const char *dbFilename, const bool removeOldFile)
     }
 }
 
-void CadDB::CreateTestTable()
+void CadDB::runQuery(const char* query, const char* desc)
 {
     char* errmsg = 0;
-    int retval = sqlite3_exec(m_db, "CREATE TABLE test(id PRIMARY KEY, col1, col2)", NULL, NULL, &errmsg);
+    int retval = sqlite3_exec(m_db, query, NULL, NULL, &errmsg);
     if (retval != SQLITE_OK)
     {
         std::stringstream msg;
-        msg << "Error creating table: " << errmsg;
+        msg << "Error running SQL query with description \"" << desc << "\": " << errmsg;
         throw CadDBException(-2, msg.str().c_str());
     }
     else
     {
-        LOG(info) << "Created table 'test' in \"" << m_db_filename << "\"." ;
+        LOG(info) << "Successfully ran query with description \"" << desc
+                  << "\" on \"" << m_db_filename << "\"." ;
     }
 }
 
+
 void CadDB::CreateCadTables()
 {
-    char* errmsg = 0;
-    int retval = 0;
-
-    const char* createTableQuery = QUOTE(
+    const char* createThermModsTbl = QUOTE(
         CREATE TABLE ThermalModels
         (
           ThermalModelID NONE NOT NULL,
@@ -82,17 +84,82 @@ void CadDB::CreateCadTables()
           CONSTRAINT Key1 PRIMARY KEY (ThermalModelID)
         );
     );
-    retval = sqlite3_exec(m_db, createTableQuery, NULL, NULL, &errmsg);
-    if (retval != SQLITE_OK)
-    {
-        std::stringstream msg;
-        msg << "Error creating table: " << errmsg;
-        throw CadDBException(-2, msg.str().c_str());
-    }
-    else
-    {
-        LOG(info) << "Created 'ThermalModels' table  in \"" << m_db_filename << "\"." ;
-    }
+    runQuery(createThermModsTbl, "create table ThermalModels");
+
+    const char* createVerticesTbl = QUOTE(
+        CREATE TABLE Vertices
+        (
+          VertexID INTEGER NOT NULL,
+          CoordX REAL,
+          CoordY REAL,
+          CoordZ REAL,
+          CONSTRAINT Key4 PRIMARY KEY (VertexID)
+        );
+    );
+    runQuery(createVerticesTbl, "create table Vertices");
 }
 
 
+
+
+VertexInserter::VertexInserter(CadDB& db)
+    : m_iInsertVal(0)
+    , m_insertVertexStmt(NULL)
+{
+    const char insertVertexQuery[] = QUOTE(
+        INSERT INTO Vertices (CoordX, CoordY, CoordZ)
+        VALUES (?, ?, ?)
+    );
+    int retVal = sqlite3_prepare_v2(db.m_db, insertVertexQuery, sizeof(insertVertexQuery), &m_insertVertexStmt, NULL);
+    if (retVal != SQLITE_OK)
+    {
+        LOG(fatal) << "Problem in preparing the VertexInserter!";
+        // TODO: throw exception
+    }
+}
+
+VertexInserter::~VertexInserter()
+{
+    int retVal = sqlite3_finalize(m_insertVertexStmt);
+    if (retVal != SQLITE_OK)
+    {
+        LOG(fatal) << "Problem in sqlite3_finalize()!";
+    }
+}
+
+void VertexInserter::bind(double coord)
+{
+    m_iInsertVal++;
+    int retVal = sqlite3_bind_double(m_insertVertexStmt, m_iInsertVal, coord);
+    if (retVal != SQLITE_OK)
+    {
+        LOG(fatal) << "Problem in sqlite3_bind_double()!";
+        // TODO: throw exception
+    }
+    if (m_iInsertVal == m_nrInsertVals)
+    {
+        retVal = sqlite3_step(m_insertVertexStmt);
+        if (retVal == SQLITE_DONE)
+        {
+            LOG(debug) << "Successfully inserted vertex.";
+        }
+        else
+        {
+            LOG(fatal) << "Error inserting vertex!";
+            // TODO: throw exception
+        }
+        retVal = sqlite3_reset(m_insertVertexStmt);
+        if (retVal != SQLITE_OK)
+        {
+            LOG(fatal) << "Problem in sqlite3_reset()!";
+            // TODO: throw exception
+        }
+        retVal = sqlite3_clear_bindings(m_insertVertexStmt);
+        if (retVal != SQLITE_OK)
+        {
+            LOG(fatal) << "Problem in sqlite3_clear_bindings()!";
+            // TODO: throw exception
+        }
+        m_iInsertVal = 0;
+    }
+}
