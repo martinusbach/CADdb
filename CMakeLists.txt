@@ -20,5 +20,7 @@ set(SRC_LIST
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS) # to supress MSVS warnings about safe functions
 
+add_compile_options( $<$<CONFIG:Debug>:-DDEBUG> )  # define DEBUG for debug builds
+
 add_executable(${PROJECT_NAME} ${SRC_LIST} ${SQLITE3_C})
 

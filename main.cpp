@@ -62,8 +62,10 @@ void ObjReader::saveToDB(CadDB &db)
                  token = strtok(NULL, " "), ++i)
             {
                 coord = strtod(token, NULL);
+#ifdef DEBUG
                 LOG(debug) << "Read " << coordChar[i] << " coordinate: " << coord;
-                vi.bind(coord);
+#endif
+                vi << coord;
             }
         }
         else if (*token == 'g')
@@ -81,7 +83,9 @@ void ObjReader::saveToDB(CadDB &db)
             {
                 face_indices[i] = strtol(token, NULL, 10);
             }
+#ifdef DEBUG
             LOG(debug) << "face indices: " << face_indices[0] << "|" << face_indices[1] << "|" << face_indices[2] << "|";
+#endif
         }
     }
 
@@ -103,8 +107,11 @@ int main(int, char*[])
 //        ObjReader teapotReader("../sample_obj_files/teapot.obj");
 //        teapotReader.saveToDB(db);
 
-        ObjReader humanoidReader("../sample_obj_files/humanoid_tri.obj");
-        humanoidReader.saveToDB(db);
+//        ObjReader humanoidReader("../sample_obj_files/humanoid_tri.obj");
+//        humanoidReader.saveToDB(db);
+
+        ObjReader minicooperReader("../sample_obj_files/mini_cooper.obj");
+        minicooperReader.saveToDB(db);
 
     }
     catch (CadDBException& exception)

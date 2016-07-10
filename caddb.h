@@ -41,11 +41,12 @@ class VertexInserter
 public:
     VertexInserter(CadDB &db);
     ~VertexInserter();
-    void bind(double coord);
+    VertexInserter& VertexInserter::operator<<(const double coord);
     const int m_nrInsertVals = 3;
 private:
     sqlite3_stmt* m_insertVertexStmt;
     int m_iInsertVal;
+    CadDB* m_db_p;
 };
 
 #endif // CADDB_H

@@ -26,7 +26,12 @@ void log_init ()
                 << " [" << std::setw(7) << blog::trivial::severity << "] "
                 << expr::smessage
         ),
+#ifdef DEBUG
         keywords::filter = ( blog::trivial::severity >= blog::trivial::trace )
+#else
+        keywords::filter = ( blog::trivial::severity >= blog::trivial::info )
+#endif
+
     );
 
     blog::add_console_log

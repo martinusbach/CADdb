@@ -105,12 +105,25 @@ void CadDB::CreateCadTables()
 VertexInserter::VertexInserter(CadDB& db)
     : m_iInsertVal(0)
     , m_insertVertexStmt(NULL)
+    , m_db_p(&db)
 {
+    // Start a transaction
+    bool transactionAlreadyStarted = (sqlite3_get_autocommit(m_db_p->m_db) == 0);
+    if (!transactionAlreadyStarted)
+    {
+        m_db_p->runQuery("BEGIN TRANSACTION", "Begin transaction");
+    }
+    else
+    {
+        LOG(info) << "VertexInserter constructed, but no transaction started (already started previously?).";
+    }
+
+    // Prepare INSERT statement
     const char insertVertexQuery[] = QUOTE(
         INSERT INTO Vertices (CoordX, CoordY, CoordZ)
         VALUES (?, ?, ?)
     );
-    int retVal = sqlite3_prepare_v2(db.m_db, insertVertexQuery, sizeof(insertVertexQuery), &m_insertVertexStmt, NULL);
+    int retVal = sqlite3_prepare_v2(m_db_p->m_db, insertVertexQuery, sizeof(insertVertexQuery), &m_insertVertexStmt, NULL);
     if (retVal != SQLITE_OK)
     {
         LOG(fatal) << "Problem in preparing the VertexInserter!";
@@ -120,6 +133,18 @@ VertexInserter::VertexInserter(CadDB& db)
 
 VertexInserter::~VertexInserter()
 {
+    // End the transaction
+    bool transactionStarted = (sqlite3_get_autocommit(m_db_p->m_db) == 0);
+    if (transactionStarted)
+    {
+        m_db_p->runQuery("COMMIT TRANSACTION", "Commit transaction");
+    }
+    else
+    {
+        LOG(info) << "VertexInserter deleted, but no transaction committed (already committed previously?).";
+    }
+
+    // destroy transaction statement
     int retVal = sqlite3_finalize(m_insertVertexStmt);
     if (retVal != SQLITE_OK)
     {
@@ -127,7 +152,7 @@ VertexInserter::~VertexInserter()
     }
 }
 
-void VertexInserter::bind(double coord)
+VertexInserter& VertexInserter::operator<<(const double coord)
 {
     m_iInsertVal++;
     int retVal = sqlite3_bind_double(m_insertVertexStmt, m_iInsertVal, coord);
@@ -141,7 +166,9 @@ void VertexInserter::bind(double coord)
         retVal = sqlite3_step(m_insertVertexStmt);
         if (retVal == SQLITE_DONE)
         {
+#ifdef DEBUG
             LOG(debug) << "Successfully inserted vertex.";
+#endif
         }
         else
         {
@@ -162,4 +189,5 @@ void VertexInserter::bind(double coord)
         }
         m_iInsertVal = 0;
     }
+    return *this;
 }
