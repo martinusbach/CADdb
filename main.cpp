@@ -2,18 +2,24 @@
 #include "my_logger.h"
 #include <string>
 #include <fstream>
- 
+
+#include <boost/filesystem.hpp>
+namespace bfs = boost::filesystem;
+
+#include <boost/program_options.hpp>
+namespace bpo = boost::program_options;
+
 class ObjReader
 {
 public:
-    ObjReader(const char *obj_filename);
+    ObjReader(const std::string& obj_filename);
     ~ObjReader();
     void saveToDB(CadDB& db);
 private:
     std::string m_obj_filename;
 };
 
-ObjReader::ObjReader(const char* obj_filename)
+ObjReader::ObjReader(const std::string &obj_filename)
     : m_obj_filename(obj_filename)
 {
     ;
@@ -33,7 +39,7 @@ void ObjReader::saveToDB(CadDB &db)
         return; // TODO throw exception
     }
 
-    const char coordChar[] = "XYZW";
+    const char coordChar[] = "xyzw";
 
     VertexInserter vi(db);
 
@@ -92,27 +98,86 @@ void ObjReader::saveToDB(CadDB &db)
 
 }
 
-
-int main(int, char*[])
+class CmdLineArgs
 {
-    log_init();
+public:
+    class CmdLineExcp : public std::exception
+    {
+    public:
+        enum CmdLineExcpCode { BAD_ARGUMENT, SHOW_USAGE };
+        CmdLineExcp(const std::string& msg, CmdLineExcpCode c)
+            : code(c), std::exception(msg.c_str())
+        {}
+        CmdLineExcpCode code;
+    };
 
-    LOG(info) << "Starting CadDB test programme.";
+    CmdLineArgs(int argc, char* argv[])
+    {
+        // Parse command line options
+        bpo::options_description desc("Usage");
+        desc.add_options()
+            ("help", "list options")
+            ("obj-file", bpo::value<std::string>(), "the wavefront obj file (input)")
+            ("db-file", bpo::value<std::string>(), "the cad database (output) -- if not specified: "
+                                                   "replace extension from <filename>.obj with .db")
+        ;
+        bpo::variables_map vm;
+        bpo::store(bpo::parse_command_line(argc, argv, desc), vm);
+        bpo::notify(vm);
+
+        // List command line arguments
+        if (vm.count("help"))
+        {
+            LOG(info) << "\n\n" << desc;
+            throw CmdLineExcp("", CmdLineExcp::SHOW_USAGE);
+        }
+        else if (vm.count("obj-file") != 1 || vm.count("db-file") > 1)
+        {
+            LOG(info) << "\n\n" << desc;
+            throw CmdLineExcp("Invalid command line argument(s).", CmdLineExcp::BAD_ARGUMENT);
+        }
+
+        // Determine input .obj file name
+        objFileName = vm["obj-file"].as<std::string>();
+
+        // Determine output .db file name
+        if (vm.count("db-file") == 1)
+        {
+            dbFileName = vm["db-file"].as<std::string>();
+        }
+        else
+        {
+            bfs::path objFile(objFileName);
+            dbFileName = "./" + objFile.stem().string() + ".db";
+        }
+    }
+
+
+    // parsed cmd line options:
+
+    std::string objFileName;
+    std::string dbFileName;
+};
+
+
+int main(int argc, char* argv[])
+{
+    // Initialize loggers
+    log_init();
 
     try
     {
-        CadDB db("c:/temp/test.db");  // creates and opens an sqlite db
+        // Parse command line arugments
+        CmdLineArgs cmdLineArgs(argc, argv);
+        LOG(info) << "Starting CadDB programme; processing " << cmdLineArgs.objFileName << ".";
+        LOG(info) << "Using cad database output file: " << cmdLineArgs.dbFileName << ".";
+
+        // Main program
+        CadDB db(cmdLineArgs.dbFileName);  // creates and opens an sqlite db
         db.CreateCadTables(); // creates the basic tables
 
-//        ObjReader teapotReader("../sample_obj_files/teapot.obj");
-//        teapotReader.saveToDB(db);
-
-//        ObjReader humanoidReader("../sample_obj_files/humanoid_tri.obj");
-//        humanoidReader.saveToDB(db);
-
-        ObjReader minicooperReader("../sample_obj_files/mini_cooper.obj");
-        minicooperReader.saveToDB(db);
-
+        ObjReader objReader(cmdLineArgs.objFileName);
+        objReader.saveToDB(db);
     }
     catch (CadDBException& exception)
     {
@@ -123,6 +188,14 @@ int main(int, char*[])
     {
         LOG(fatal) << e.what();
         return -1;
+    }
+    catch (const CmdLineArgs::CmdLineExcp& e)
+    {
+        if (e.code == CmdLineArgs::CmdLineExcp::BAD_ARGUMENT)
+        {
+            LOG(fatal) << e.what();
+            return -1;
+        }
     }
     catch (...)
     {

@@ -24,13 +24,13 @@ class CadDB
 {
     friend class VertexInserter;
 public:
-    CadDB(const char *dbFilename);
-    CadDB(const char* dbFilename, const bool removeOldFile);
+    CadDB(const std::string &dbFilename);
+    CadDB(const std::string &dbFilename, const bool removeOldFile);
     ~CadDB();
     void CadDB::runQuery(const char *query, const char *desc);
     void CreateCadTables();
 private:
-    void createDatabase(const char *dbFilename, const bool removeOldFile);
+    void createDatabase(const std::string &dbFilename, const bool removeOldFile);
     sqlite3* m_db;
     std::string m_db_filename;
 };

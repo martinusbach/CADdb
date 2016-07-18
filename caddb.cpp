@@ -5,13 +5,13 @@
 namespace bfs = boost::filesystem;
 
 
-CadDB::CadDB(const char *dbFilename)
+CadDB::CadDB(const std::string& dbFilename)
     : m_db(NULL), m_db_filename(dbFilename)
 {
     createDatabase(dbFilename, true); // remove old db by default
 }
 
-CadDB::CadDB(const char *dbFilename, const bool removeOldFile)
+CadDB::CadDB(const std::string& dbFilename, const bool removeOldFile)
     : m_db(NULL), m_db_filename(dbFilename)
 {
     createDatabase(dbFilename, removeOldFile);
@@ -26,7 +26,7 @@ CadDB::~CadDB()
     }
 }
 
-void CadDB::createDatabase(const char *dbFilename, const bool removeOldFile)
+void CadDB::createDatabase(const std::string& dbFilename, const bool removeOldFile)
 {
     if (removeOldFile && bfs::exists(dbFilename))
     {
@@ -41,7 +41,7 @@ void CadDB::createDatabase(const char *dbFilename, const bool removeOldFile)
         LOG(info) << "Removed existing db file: \"" << dbFilename << "\".";
     }
 
-    int retval = sqlite3_open_v2(dbFilename, &m_db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
+    int retval = sqlite3_open_v2(dbFilename.c_str(), &m_db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
     if (retval != SQLITE_OK)
     {
         std::stringstream msg;
