@@ -31,7 +31,6 @@ void log_init ()
 #else
         keywords::filter = ( blog::trivial::severity >= blog::trivial::info )
 #endif
-
     );
 
     blog::add_console_log

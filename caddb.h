@@ -27,7 +27,7 @@ public:
     CadDB(const std::string &dbFilename);
     CadDB(const std::string &dbFilename, const bool removeOldFile);
     ~CadDB();
-    void CadDB::runQuery(const char *query, const char *desc);
+    void runQuery(const char *query, const char *desc);
     void CreateCadTables();
 private:
     void createDatabase(const std::string &dbFilename, const bool removeOldFile);
@@ -41,7 +41,7 @@ class VertexInserter
 public:
     VertexInserter(CadDB &db);
     ~VertexInserter();
-    VertexInserter& VertexInserter::operator<<(const double coord);
+    VertexInserter& operator<<(const double coord);
     const int m_nrInsertVals = 3;
 private:
     sqlite3_stmt* m_insertVertexStmt;

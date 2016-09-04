@@ -98,19 +98,19 @@ void ObjReader::saveToDB(CadDB &db)
 
 }
 
+class CmdLineExcp : public std::runtime_error
+{
+public:
+    enum CmdLineExcpCode { BAD_ARGUMENT, SHOW_USAGE };
+    CmdLineExcp(const std::string& msg, CmdLineExcpCode c)
+        : code(c), std::runtime_error(msg.c_str())
+    {}
+    CmdLineExcpCode code;
+};
+
 class CmdLineArgs
 {
 public:
-    class CmdLineExcp : public std::exception
-    {
-    public:
-        enum CmdLineExcpCode { BAD_ARGUMENT, SHOW_USAGE };
-        CmdLineExcp(const std::string& msg, CmdLineExcpCode c)
-            : code(c), std::exception(msg.c_str())
-        {}
-        CmdLineExcpCode code;
-    };
-
     CmdLineArgs(int argc, char* argv[])
     {
         // Parse command line options
@@ -189,9 +189,9 @@ int main(int argc, char* argv[])
         LOG(fatal) << e.what();
         return -1;
     }
-    catch (const CmdLineArgs::CmdLineExcp& e)
+    catch (const CmdLineExcp& e)
     {
-        if (e.code == CmdLineArgs::CmdLineExcp::BAD_ARGUMENT)
+        if (e.code == CmdLineExcp::BAD_ARGUMENT)
         {
             LOG(fatal) << e.what();
             return -1;
