@@ -30,14 +30,16 @@ void CadDB::createDatabase(const std::string& dbFilename, const bool removeOldFi
 {
     if (removeOldFile && bfs::exists(dbFilename))
     {
-//        try
-//        {
+        try
+        {
             bfs::remove(dbFilename);
-//        }
-//        catch(const bfs::filesystem_error& e)
-//        {
-//            LOG()
-//        }
+        }
+        catch(const bfs::filesystem_error& e)
+        {
+            std::stringstream msg;
+            msg << "Removing existing db failed: " << e.what();
+            throw CadDBException(-3, msg.str());
+        }
         LOG(info) << "Removed existing db file: \"" << dbFilename << "\".";
     }
 
@@ -48,12 +50,9 @@ void CadDB::createDatabase(const std::string& dbFilename, const bool removeOldFi
         msg << "Can't open sqlite3 db: " << sqlite3_errmsg(m_db);
         sqlite3_close(m_db);
         m_db = NULL;
-        throw CadDBException(-1, msg.str().c_str());
+        throw CadDBException(-1, msg.str());
     }
-    else
-    {
-        LOG(info) << "Opened sqlite db \"" << dbFilename << "\".";
-    }
+    LOG(info) << "Opened sqlite db \"" << dbFilename << "\".";
 }
 
 void CadDB::runQuery(const char* query, const char* desc)
@@ -64,13 +63,10 @@ void CadDB::runQuery(const char* query, const char* desc)
     {
         std::stringstream msg;
         msg << "Error running SQL query with description \"" << desc << "\": " << errmsg;
-        throw CadDBException(-2, msg.str().c_str());
+        throw CadDBException(-2, msg.str());
     }
-    else
-    {
-        LOG(info) << "Successfully ran query with description \"" << desc
-                  << "\" on \"" << m_db_filename << "\"." ;
-    }
+    LOG(info) << "Successfully ran query with description \"" << desc
+              << "\" on \"" << m_db_filename << "\"." ;
 }
 
 
@@ -103,9 +99,9 @@ void CadDB::CreateCadTables()
 
 
 VertexInserter::VertexInserter(CadDB& db)
-    : m_iInsertVal(0)
-    , m_insertVertexStmt(NULL)
-    , m_db_p(&db)
+    : m_db_p(&db)
+    , m_insertVertexStmt(nullptr)
+    , m_iInsertVal(0)
 {
     // Start a transaction
     bool transactionAlreadyStarted = (sqlite3_get_autocommit(m_db_p->m_db) == 0);

@@ -103,7 +103,8 @@ class CmdLineExcp : public std::runtime_error
 public:
     enum CmdLineExcpCode { BAD_ARGUMENT, SHOW_USAGE };
     CmdLineExcp(const std::string& msg, CmdLineExcpCode c)
-        : code(c), std::runtime_error(msg.c_str())
+        : std::runtime_error(msg)
+        , code(c)
     {}
     CmdLineExcpCode code;
 };

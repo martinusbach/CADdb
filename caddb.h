@@ -13,8 +13,9 @@
 class CadDBException : public std::exception
 {
 public:
-    CadDBException(const int code_, const char* msg_)
-        : code(code_), msg(msg_)     {}
+    CadDBException(const int code_, const std::string& msg_)
+        : code(code_), msg(msg_)
+    {}
     int code;
     std::string msg;
 };
@@ -44,9 +45,9 @@ public:
     VertexInserter& operator<<(const double coord);
     const int m_nrInsertVals = 3;
 private:
+    CadDB* m_db_p;
     sqlite3_stmt* m_insertVertexStmt;
     int m_iInsertVal;
-    CadDB* m_db_p;
 };
 
 #endif // CADDB_H

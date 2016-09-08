@@ -25,6 +25,7 @@ Change boost/typeof/typeof.hpp:52 from
     #elif defined(__GNUC__)
 to
     #elif defined(__GNUC__) || defined(__clang__)
+(see [bug report](https://svn.boost.org/trac/boost/ticket/11821))
 
 Ensure that `CMAKE_CXX_COMPILER` and `CMAKE_C_COMPILER` are set 
 to the `clang-cl.exe` executable (which emulates the msvc compiler), 

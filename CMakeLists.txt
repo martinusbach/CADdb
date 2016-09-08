@@ -27,7 +27,7 @@ add_compile_options( $<$<CONFIG:Debug>:-DDEBUG> )
 # work around some bugs in Clang
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(CMAKE_CXX_FLAGS_RELEASE "/MD /O1 /Ob1 /D NDEBUG")  # needed because of a bug in clang
-    add_compile_options( -DBOOST_NO_CXX11_NUMERIC_LIMITS ) # needed because of a bug in libc++ of clang
+    add_compile_options( -DBOOST_NO_CXX11_NUMERIC_LIMITS ) # needed because of a bug in libc++ of clang, see http://stackoverflow.com/questions/14300136
 endif()
 
 
